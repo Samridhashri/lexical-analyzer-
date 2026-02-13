@@ -1,0 +1,32 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+
+#define MAX 10
+
+int n;                       // number of productions
+char production[MAX][MAX];   // grammar rules
+char first[MAX], follow[MAX];
+int m = 0, k = 0;
+int visited[MAX];
+
+// Function to find FIRST
+void findFirst(char c) {
+    int i, j;
+
+    // If terminal
+    if (!isupper(c)) {
+        first[m++] = c;
+        return;
+    }
+
+    for (i = 0; i < n; i++) {
+        if (production[i][0] == c) {
+            if (production[i][2] == '#') {
+                first[m++] = '#';
+            }
+            else if (!isupper(production[i][2])) {
+                first[m++] = production[i][2];
+            }
+            else {
+                findFir
