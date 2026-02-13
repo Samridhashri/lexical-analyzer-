@@ -1,0 +1,101 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX 10
+
+char production[MAX][MAX];
+char first[MAX][MAX];
+char follow[MAX][MAX];
+char table[MAX][MAX][MAX];
+
+int n; // number of productions
+
+// Utility: find index of non-terminal
+int findIndex(char nt) {
+    for(int i = 0; i < n; i++)
+        if(production[i][0] == nt)
+            return i;
+    return -1;
+}
+
+// Add entry to parsing table
+void addToTable(char nt, char t, char prod[]) {
+    int row = findIndex(nt);
+    int col = t - 'a';   // terminals assumed small letters
+
+    strcpy(table[row][col], prod);
+}
+
+// Construct Parsing Table
+void constructTable() {
+    for(int i = 0; i < n; i++) {
+        char nt = production[i][0];
+        char rhs = production[i][2];
+
+        // If first symbol is terminal
+        if(!isupper(rhs) && rhs != '#') {
+            addToTable(nt, rhs, production[i]);
+        }
+        else if(rhs == '#') {
+            // For epsilon, use FOLLOW
+            for(int j = 0; follow[i][j] != '\0'; j++) {
+                addToTable(nt, follow[i][j], production[i]);
+            }
+        }
+        else {
+            // If non-terminal, use FIRST
+            int idx = findIndex(rhs);
+            for(int j = 0; first[idx][j] != '\0'; j++) {
+                if(first[idx][j] != '#')
+                    addToTable(nt, first[idx][j], production[i]);
+            }
+        }
+    }
+}
+
+// Print Parsing Table
+void printTable() {
+    printf("\nPredictive Parsing Table:\n\n");
+
+    printf("NT\\T | a  b  c  d  +  *  (  )  $\n");
+    printf("-------------------------------------\n");
+
+    for(int i = 0; i < n; i++) {
+        printf("  %c   | ", production[i][0]);
+        for(int j = 0; j < MAX; j++) {
+            if(strlen(table[i][j]) > 0)
+                printf("%s ", table[i][j]);
+            else
+                printf(" -  ");
+        }
+        printf("\n");
+    }
+}
+
+int main() {
+    printf("Enter number of productions: ");
+    scanf("%d", &n);
+
+    printf("Enter productions (Example: E=TR):\n");
+    for(int i = 0; i < n; i++)
+        scanf("%s", production[i]);
+
+    printf("\nEnter FIRST sets:\n");
+    for(int i = 0; i < n; i++) {
+        printf("FIRST(%c): ", production[i][0]);
+        scanf("%s", first[i]);
+    }
+
+    printf("\nEnter FOLLOW sets:\n");
+    for(int i = 0; i < n; i++) {
+        printf("FOLLOW(%c): ", production[i][0]);
+        scanf("%s", follow[i]);
+    }
+
+    constructTable();
+    printTable();
+
+    return 0;
+}
+
