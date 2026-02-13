@@ -1,0 +1,129 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX 100
+
+// Structure for NFA state
+typedef struct State {
+    int id;
+    char symbol;
+    struct State *out1;
+    struct State *out2;
+} State;
+
+// Structure for NFA fragment
+typedef struct Fragment {
+    State *start;
+    State *end;
+} Fragment;
+
+State states[MAX];
+int stateCount = 0;
+
+// Create new state
+State* createState(char symbol) {
+    State *s = &states[stateCount];
+    s->id = stateCount;
+    s->symbol = symbol;
+    s->out1 = s->out2 = NULL;
+    stateCount++;
+    return s;
+}
+
+// Stack for fragments
+Fragment stack[MAX];
+int top = -1;
+
+void push(Fragment f) {
+    stack[++top] = f;
+}
+
+Fragment pop() {
+    return stack[top--];
+}
+
+// Thompson's Construction
+void regexToNFA(char *postfix) {
+    for (int i = 0; i < strlen(postfix); i++) {
+        char c = postfix[i];
+
+        if (c == '*') {
+            Fragment f = pop();
+            State *start = createState('ε');
+            State *end = createState('ε');
+
+            start->out1 = f.start;
+            start->out2 = end;
+            f.end->out1 = f.start;
+            f.end->out2 = end;
+
+            Fragment newFrag = {start, end};
+            push(newFrag);
+        }
+        else if (c == '|') {
+            Fragment f2 = pop();
+            Fragment f1 = pop();
+
+            State *start = createState('ε');
+            State *end = createState('ε');
+
+            start->out1 = f1.start;
+            start->out2 = f2.start;
+            f1.end->out1 = end;
+            f2.end->out1 = end;
+
+            Fragment newFrag = {start, end};
+            push(newFrag);
+        }
+        else if (c == '.') {  // Concatenation operator
+            Fragment f2 = pop();
+            Fragment f1 = pop();
+
+            f1.end->out1 = f2.start;
+            Fragment newFrag = {f1.start, f2.end};
+            push(newFrag);
+        }
+        else {  // Operand
+            State *start = createState(c);
+            State *end = createState('ε');
+            start->out1 = end;
+
+            Fragment newFrag = {start, end};
+            push(newFrag);
+        }
+    }
+
+    Fragment result = pop();
+    printf("Start State: %d\n", result.start->id);
+    printf("Accept State: %d\n", result.end->id);
+}
+
+// Display transitions
+void printNFA() {
+    printf("\nNFA Transitions:\n");
+    for (int i = 0; i < stateCount; i++) {
+        if (states[i].out1)
+            printf("State %d -- %c --> State %d\n",
+                   states[i].id,
+                   states[i].symbol,
+                   states[i].out1->id);
+
+        if (states[i].out2)
+            printf("State %d -- ε --> State %d\n",
+                   states[i].id,
+                   states[i].out2->id);
+    }
+}
+
+int main() {
+    char postfix[MAX];
+
+    printf("Enter postfix regular expression: ");
+    scanf("%s", postfix);
+
+    regexToNFA(postfix);
+    printNFA();
+
+    return 0;
+}
